@@ -3,7 +3,7 @@ name: pdf-layout-translation
 description: Translate long, layout-sensitive PDF documents with a simple user-facing translation choice—Google by default, the current Agent second, or an already configured service—while PDFMathTranslate-next/BabelDOC automatically handles PDF engineering. Preserve formulas, figures, tables, captions, table-of-contents/index rows and links, page geometry, and protected tokens. Produce both a layout-authoritative translated PDF and an editable Word companion. Use for PDF translation, bilingual or monolingual translated PDFs, broken TOC/index/contents pages, long technical papers/reports/books, terminology-controlled translation, document-level context, translation memory, semantic and visual QA, editable DOCX correction workflows, or retrying only failed PDF pages.
 ---
 
-# PDF Layout Translation v0.5
+# PDF Layout Translation v0.6
 
 Treat PDFMathTranslate-next/BabelDOC as the PDF engineering engine, the language model as the semantic translator, and the agent as the controller for context, terminology, state, QA, and recovery.
 
@@ -96,13 +96,21 @@ output/
 
 ### 2. Inspect the environment
 
-Run:
+Run once at the start of the task and save the report into the run directory:
 
 ```bash
-python scripts/doctor.py --json
+python scripts/doctor.py --json --json-out work/<id>/doctor.json
 ```
 
-If the engine or Python dependencies are missing, read [environment setup](references/environment.md), show the proposed action, obtain approval, and then use `setup_environment.py --apply`. Re-run `doctor.py`. Warm up engine assets only after approval.
+Trust this report — it is the single source of truth for environment state. Never claim the engine or a dependency is missing without a fresh doctor report from the current session.
+
+- `summary.verdict: ready` — do **not** reinstall the engine, do **not** rerun `setup_environment.py`, and do **not** warm up again. Proceed directly to preflight. The engine install is global and one-time.
+- `summary.verdict: needs-python-deps` — only the lightweight Python packages are missing. Install exactly those (`python -m pip install PyMuPDF python-docx`), then re-run doctor once.
+- `summary.verdict: needs-engine` — read [environment setup](references/environment.md), show the proposed action, obtain approval, and run `setup_environment.py --apply` once. It automatically retries with `--force` when a leftover pdf2zh 1.x tool blocks the install with an executable conflict.
+
+Model and font downloads (warmup) happen once per machine into `~/.cache/babeldoc`. When `warmup_assets.ready` is true, skip warmup entirely; the first translation run will not download anything.
+
+After any context compression or session resume, re-read `work/<id>/doctor.json` and `work/<id>/translation-run.json` instead of re-probing the environment. Re-run doctor only after you performed an install in this session.
 
 ### 3. Preflight the PDF
 

@@ -2,7 +2,17 @@
 
 ## Principle
 
-Detect first, propose second, install only with approval. Environment inspection must not mutate the machine or access the network.
+Detect first, propose second, install only with approval. Environment inspection must not mutate the machine or access the network. Everything is one-time per machine: the engine install is global, and model/font downloads land in a persistent cache. Re-installing or re-downloading on every task is a process bug, not a requirement.
+
+## Readiness verdict
+
+`doctor.py` is the single source of truth. Its `summary.verdict` is one of:
+
+- `ready` — engine and Python dependencies present. Skip all installation and warmup.
+- `needs-python-deps` — only `PyMuPDF`/`python-docx` are missing. Install exactly those, nothing else.
+- `needs-engine` — the PDF engine is absent. One `setup_environment.py --apply` run fixes it.
+
+The report also includes `warmup_assets` (BabelDOC layout model and fonts under `~/.cache/babeldoc`, roughly 300+ MB) and `uv_tools.executable_conflict` (legacy `pdf2zh` 1.x and `pdf2zh-next` both ship a `pdf2zh` executable). Persist the report with `--json-out` into the run directory and re-read it after context compression instead of probing again.
 
 ## Supported paths
 
@@ -11,7 +21,7 @@ Prefer an existing `pdf2zh_next` executable. If it is absent, prefer an isolated
 Run the read-only check:
 
 ```bash
-python scripts/doctor.py --json
+python scripts/doctor.py --json --json-out work/<id>/doctor.json
 ```
 
 Preview the install command:
@@ -26,7 +36,13 @@ After the user approves installation and network access:
 python scripts/setup_environment.py --apply
 ```
 
-The installer intentionally does not warm up assets. After installation, preview the installed CLI help and run its supported `--warmup` form with explicit approval; model and font assets can be large and require network access.
+If a leftover pdf2zh 1.x tool makes `uv tool install` abort with an executable conflict, the installer retries once with `--force` automatically; report that this happened.
+
+The installer intentionally does not warm up assets. When `doctor.py` reports `warmup_assets.ready: true`, skip warmup. Otherwise, preview the installed CLI help and run its supported `--warmup` form with explicit approval; model and font assets are large, download once per machine into `~/.cache/babeldoc`, and require network access. If HuggingFace is unreachable or slow, set `HF_ENDPOINT=https://hf-mirror.com` before warmup; if PyPI is slow, set `UV_DEFAULT_INDEX` to a nearby mirror.
+
+## Engine defaults
+
+The installed engine's default translation service may not be Google (some releases default to a SiliconFlow free tier). `run_translation.py` passes an explicit `--google` when the user chose Google, so always go through it rather than invoking the engine by hand.
 
 ## Python dependencies
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -41,9 +42,30 @@ def main() -> int:
     if not args.apply:
         print("Dry run only. Re-run with --apply after the user approves installation and network access.")
         return 0
-    result = subprocess.run(command, check=False)
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    if result.stdout:
+        print(result.stdout, end="")
     if result.returncode != 0:
-        return result.returncode
+        combined = (result.stderr or "") + (result.stdout or "")
+        # pdf2zh 1.x and pdf2zh-next both ship a 'pdf2zh' executable; uv aborts the
+        # install when another tool owns it. Retry once with --force (remote package wins).
+        conflict = "--force" not in command and re.search(
+            r"already exists|conflict|existing executable", combined, re.I
+        )
+        if conflict:
+            print(
+                "Executable conflict detected (for example a leftover pdf2zh 1.x tool). "
+                "Retrying once with --force.",
+                file=sys.stderr,
+            )
+            retry = [uv, "tool", "install", "--python", args.python, "--force", args.package]
+            print(json.dumps({"status": "retrying-with-force", "command": retry}, indent=2))
+            result = subprocess.run(retry, check=False)
+        else:
+            if result.stderr:
+                print(result.stderr, end="", file=sys.stderr)
+        if result.returncode != 0:
+            return result.returncode
     installed = shutil.which("pdf2zh_next")
     print(json.dumps({"status": "installed", "path": installed}, indent=2))
     return 0 if installed else 3

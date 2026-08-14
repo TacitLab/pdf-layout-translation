@@ -32,6 +32,10 @@ The CLI evolves. Glossary options, output options, OCR flags, page selection, an
 
 If a requested feature is not exposed by the installed CLI, the wrapper stops instead of silently dropping it.
 
+## Glossary CSV format
+
+BabelDOC's glossary loader reads only the `source` and `target` columns (`tgt_lng` is optional); every other column, such as `notes`, is ignored. Extra columns do not cause errors, so the skill's four-column template works as-is. "Preserve, do not translate" is expressed as `target` equal to `source` (see the `Pod,Pod` row in `assets/glossary-template.csv`). Do not invent other encodings for protected terms.
+
 ## Context modes
 
 ### Global-profile CLI mode
