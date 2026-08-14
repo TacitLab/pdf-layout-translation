@@ -3,9 +3,25 @@ name: pdf-layout-translation
 description: Translate long, layout-sensitive PDF documents with a simple user-facing translation choice—Google by default, the current Agent second, or an already configured service—while PDFMathTranslate-next/BabelDOC automatically handles PDF engineering. Preserve formulas, figures, tables, captions, table-of-contents/index rows and links, page geometry, and protected tokens. Produce both a layout-authoritative translated PDF and an editable Word companion. Use for PDF translation, bilingual or monolingual translated PDFs, broken TOC/index/contents pages, long technical papers/reports/books, terminology-controlled translation, document-level context, translation memory, semantic and visual QA, editable DOCX correction workflows, or retrying only failed PDF pages.
 ---
 
-# PDF Layout Translation v0.4
+# PDF Layout Translation v0.5
 
 Treat PDFMathTranslate-next/BabelDOC as the PDF engineering engine, the language model as the semantic translator, and the agent as the controller for context, terminology, state, QA, and recovery.
+
+## Updating the skill
+
+When the user asks to update the skill or check for a newer version, run the read-only check first:
+
+```bash
+python scripts/self_update.py
+```
+
+Report the result: `up-to-date`, `update-available`, or `diverged`. If an update exists, show the user what will happen and obtain approval, then sync:
+
+```bash
+python scripts/self_update.py --apply
+```
+
+The sync fetches the latest version from GitHub and hard-resets the skill directory to the remote branch. On any conflict, the remote content wins and overwrites local modifications to tracked files. Untracked local files (for example `work/` and `output/` directories) are left untouched. If the skill directory is not yet a git clone, the script links it to the remote repository automatically.
 
 ## Operating contract
 
